@@ -23,7 +23,6 @@ def test_url_with_custom_dns(url, dns_server, results):
             answer = resolver.resolve(hostname)
             return answer[0].address
         except Exception as e:
-            tqdm.write(f"DNS resolution error with {dns_server}: {e}")
             return None
 
     tqdm.write(f"Testing with DNS server: {dns_server}")
@@ -49,7 +48,8 @@ def test_url_with_custom_dns(url, dns_server, results):
                 )
             # print(f"Response: {response.text}")
         except requests.RequestException as e:
-            tqdm.write(f"HTTP request error: {e}")
+            pass
+            # tqdm.write(f"HTTP request error: {e}")
     else:
         tqdm.write("Failed to resolve DNS.")
 
@@ -124,7 +124,7 @@ def set_dns_windows(dns_servers):
     columns, _ = shutil.get_terminal_size()
     padding = "*" * columns
 
-    windows_logo = """
+    windows_logo = """\
              _.-;;-._
       '-..-'|   ||   |
       '-..-'|_.-;;-._|
