@@ -113,37 +113,57 @@ def set_dns(dns_servers: List[str]):
 
 
 def set_dns_windows(dns_servers):
-    # ***The requested operation requires elevation (Run as administrator).***
-    # interface = "Ethernet"  # Change this to your network interface name if different
-    # command = f'netsh interface ip set dns name="{interface}" static {dns_servers[0]}'
-    # subprocess.run(command, shell=True)
-    # for dns in dns_servers[1:]:
-    #     command = f'netsh interface ip add dns name="{interface}" {dns} index=2'
-    #     subprocess.run(command, shell=True)
-    # Beautiful print with "*" padding and Windows logo in ASCII
-    columns, _ = shutil.get_terminal_size()
-    padding = "*" * columns
-
-    windows_logo = """\
-             _.-;;-._
-      '-..-'|   ||   |
-      '-..-'|_.-;;-._|
-      '-..-'|   ||   |
-jgs   '-..-'|_.-''-._|"""
-    print(padding)
-    print(windows_logo)
-    print("Windows detected")
-    print("windows doesn't support changing DNS servers, change it manually")
-    print()
-    if len(dns_servers) >= 1:
+    try:
+        # Get a list of network interfaces
+        interfaces_output = subprocess.check_output(
+            "netsh interface show interface", shell=True, text=True
+        )
+        
+        # Extract enabled interfaces
+        interfaces = []
+        for line in interfaces_output.split('\n'):
+            if "Connected" in line or "Enabled" in line:
+                # Get interface name (usually the last part of the line)
+                parts = line.strip().split()
+                if len(parts) >= 4:
+                    interfaces.append(' '.join(parts[3:]))
+        
+        if not interfaces:
+            print("No active network interfaces found.")
+            return
+        
+        # Set DNS servers for each interface
+        for interface in interfaces:
+            # Set primary DNS server
+            subprocess.run(
+                f'netsh interface ip set dns name="{interface}" static {dns_servers[0]} primary',
+                shell=True, check=True
+            )
+            
+            # Set secondary DNS servers
+            for i, dns in enumerate(dns_servers[1:], start=2):
+                subprocess.run(
+                    f'netsh interface ip add dns name="{interface}" {dns} index={i}',
+                    shell=True, check=True
+                )
+            
+            print(f"Successfully set DNS servers for {interface}")
+        
+        print(f"Primary DNS: {dns_servers[0]}")
+        if len(dns_servers) > 1:
+            print(f"Secondary DNS: {dns_servers[1]}")
+            
+    except subprocess.CalledProcessError:
+        columns, _ = shutil.get_terminal_size()
+        padding = "*" * columns
         print(padding)
-        print(dns_servers[0])
-    if len(dns_servers) > 1:
-        print(dns_servers[1])
-        print()
-
+        print("ERROR: Administrator privileges required!")
+        print("Please run this script as Administrator to change DNS settings.")
         print(padding)
-    print()
+        print(f"Recommended DNS servers:")
+        print(f"Primary: {dns_servers[0]}")
+        if len(dns_servers) > 1:
+            print(f"Secondary: {dns_servers[1]}")
 
 
 def set_dns_mac(dns_servers):
